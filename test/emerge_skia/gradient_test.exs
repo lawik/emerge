@@ -37,6 +37,25 @@ defmodule EmergeSkia.GradientTest do
     refute render(panel(gradient(rgb, 90))) == pixels
   end
 
+  test "per-stop alpha fades a gradient over a contrasting background" do
+    mist = gradient([color_rgba(10, 20, 30, 0.9), color_rgba(10, 20, 30, 0)], 0)
+
+    pixels =
+      render(
+        el(
+          [width(px(100)), height(px(50)), Background.color(color_rgb(255, 255, 255))],
+          panel(mist)
+        )
+      )
+
+    for x <- [0, 25, 50, 75, 99] do
+      {r, _g, _b, 255} = pixel(pixels, x, 25)
+      t = 0.5 + (x + 0.5 - 50) / :math.sqrt(100 * 100 + 50 * 50)
+      alpha = 0.9 * (1 - t)
+      assert abs(r - round(10 * alpha + 255 * (1 - alpha))) <= 2
+    end
+  end
+
   test "two-stop output retains the original diagonal-axis geometry" do
     pixels = render(panel(gradient([:black, :white])))
 
