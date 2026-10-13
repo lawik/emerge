@@ -169,6 +169,7 @@ struct HostClipDescriptor {
     clip: ClipShape,
     scroll_x: bool,
     scroll_y: bool,
+    clip_nearby: bool,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -183,6 +184,10 @@ struct RenderBuildContext {
 }
 
 fn shadow_boundary_clip(clip: HostClipDescriptor, scene_bounds: Rect) -> ClipShape {
+    if clip.clip_nearby {
+        return clip.clip;
+    }
+
     match (clip.scroll_x, clip.scroll_y) {
         (true, true) => clip.clip,
         (true, false) => ClipShape {
@@ -219,8 +224,8 @@ impl RenderBuildContext {
         &self,
         clip: HostClipDescriptor,
         self_clip: ClipShape,
-        clip_nearby: bool,
     ) -> Self {
+        let clip_nearby = clip.clip_nearby;
         let inherited_host_clips = arc_slice_with(&self.inherited_host_clips, clip);
         let inherited_clip_shapes = arc_slice_with(&self.inherited_clip_shapes, clip.clip);
         let inherited_self_clips = arc_slice_with(&self.inherited_self_clips, self_clip);
@@ -276,7 +281,7 @@ impl RenderBuildContext {
     fn shadow_clip_shapes(&self) -> Vec<ClipShape> {
         self.inherited_host_clips
             .iter()
-            .filter(|clip| clip.scroll_x || clip.scroll_y)
+            .filter(|clip| clip.scroll_x || clip.scroll_y || clip.clip_nearby)
             .map(|clip| shadow_boundary_clip(*clip, self.scene_bounds))
             .collect()
     }
@@ -600,6 +605,7 @@ fn build_element_subtree<R: RegistryTraversalSink>(
             .unwrap_or_else(|| host_clip_shape(render_frame, attrs)),
         scroll_x: effective_scrollbar_x(attrs),
         scroll_y: effective_scrollbar_y(attrs),
+        clip_nearby: attrs.clip_nearby.unwrap_or(false),
     };
     let current_self_shape = geometry_self_shape(render_frame, attrs);
     let child_render_ctx = traversal.render_ctx.with_host_clip(
@@ -608,7 +614,6 @@ fn build_element_subtree<R: RegistryTraversalSink>(
             rect: current_self_shape.rect,
             radii: current_self_shape.radii,
         },
-        attrs.clip_nearby.unwrap_or(false),
     );
     let local_transform_render_ctx = (declared_animation || !transform.is_identity())
         .then(|| traversal.render_ctx.within_local_transform());
@@ -1067,6 +1072,7 @@ fn build_host_content_subtree<H: HostRegistryTraversalSink>(
             .unwrap_or_else(|| host_clip_shape(render_frame, attrs)),
         scroll_x: effective_scrollbar_x(attrs),
         scroll_y: effective_scrollbar_y(attrs),
+        clip_nearby: attrs.clip_nearby.unwrap_or(false),
     };
     let current_self_shape = geometry_self_shape(render_frame, attrs);
     let child_render_ctx = traversal.render_ctx.with_host_clip(
@@ -1075,7 +1081,6 @@ fn build_host_content_subtree<H: HostRegistryTraversalSink>(
             rect: current_self_shape.rect,
             radii: current_self_shape.radii,
         },
-        attrs.clip_nearby.unwrap_or(false),
     );
 
     let mut subtree = RenderSubtree::default();

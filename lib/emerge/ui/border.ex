@@ -47,6 +47,10 @@ defmodule Emerge.UI.Border do
   clips top and bottom, `scroll_x` clips left and right. If both axes scroll,
   the full scrollport clips the shadow, including rounded corners.
 
+  Other ancestors do not clip outer shadows, even rounded ones. A host with
+  `Emerge.UI.clip_nearby/0` clips the outer shadows of all its descendants,
+  including nearby content, to its clip shape, including rounded corners.
+
   `inner_shadow/1` renders inside the element and does not bleed outside it.
 
   ## Inline paragraph wrappers
@@ -163,6 +167,8 @@ defmodule Emerge.UI.Border do
   into a parent's padding.
 
   Scroll containers clip outer shadows only on active scroll axes.
+  Hosts with `Emerge.UI.clip_nearby/0` clip descendant outer shadows to their
+  clip shape.
 
   Options:
   - `:offset` - `{x, y}` offset (default `{0, 0}`)
@@ -208,7 +214,7 @@ defmodule Emerge.UI.Border do
   Sugar for `shadow/1` with zero offset.
 
   Decorative only. `glow/2` follows the same bleed and scroll-axis clipping
-  behavior as outer shadows.
+  behavior as outer shadows, including `Emerge.UI.clip_nearby/0` clipping.
   """
   @spec glow(color_value(), number()) :: {:box_shadow, shadow_value()}
   def glow(color, size) do

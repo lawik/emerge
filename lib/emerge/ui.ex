@@ -546,6 +546,10 @@ defmodule Emerge.UI do
 
   Use this on hosts or scroll containers when nearby content should be clipped
   to the host bounds instead of escaping freely.
+
+  The host also clips the outer shadows and glows of all its descendants,
+  normal children and nearby content alike, to its clip shape, including
+  rounded corners.
   """
   @spec clip_nearby() :: clip_nearby_attr()
   def clip_nearby, do: {:clip_nearby, true}

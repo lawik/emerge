@@ -44,7 +44,8 @@ defmodule Emerge.UI.Nearby do
 
   Nearby escape content is not clipped by ancestor hosts by default. Add
   `Emerge.UI.clip_nearby/0` on a host or scroll container when you want that
-  host to clip nearby escapes too.
+  host to clip nearby escapes too. Such a host also clips the outer shadows and
+  glows of its descendants to its clip shape.
 
   ## Paint Order
 
