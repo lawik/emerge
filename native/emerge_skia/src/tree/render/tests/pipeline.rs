@@ -4096,6 +4096,95 @@ fn test_outer_shadow_escapes_nested_non_scrollable_ancestor_clips() {
     );
 }
 
+fn red_glow_attrs() -> Attrs {
+    Attrs {
+        background: Some(Background::Color(Color::Rgb { r: 255, g: 0, b: 0 })),
+        box_shadows: Some(vec![BoxShadow {
+            offset_x: 0.0,
+            offset_y: 0.0,
+            blur: 120.0,
+            size: 60.0,
+            color: Color::Rgb { r: 255, g: 0, b: 0 },
+            inset: false,
+        }]),
+        ..Attrs::default()
+    }
+}
+
+fn round_clip_nearby_host_attrs() -> Attrs {
+    Attrs {
+        clip_nearby: Some(true),
+        border_radius: Some(BorderRadius::Uniform(50.0)),
+        ..solid_fill_attrs((0, 0, 255))
+    }
+}
+
+fn square_frame(x: f32, y: f32, size: f32) -> Frame {
+    Frame {
+        x,
+        y,
+        width: size,
+        height: size,
+        content_width: size,
+        content_height: size,
+    }
+}
+
+fn assert_glow_clipped_to_round_host(pixels: &[u8]) {
+    let (r, _, b, _) = rgba_at(pixels, 200, 60, 100);
+    assert!(r > 0 && b > 0, "glow should paint inside the host, got r={r} b={b}");
+    assert_eq!(
+        rgba_at(pixels, 200, 54, 54),
+        (0, 0, 0, 255),
+        "glow should be clipped at the host's rounded corner"
+    );
+    assert_eq!(
+        rgba_at(pixels, 200, 170, 100),
+        (0, 0, 0, 255),
+        "glow should be clipped outside the host"
+    );
+}
+
+#[test]
+fn test_outer_shadow_of_child_is_clipped_by_clip_nearby_rounded_host() {
+    let tree = build_nested_child_tree(
+        Attrs::default(),
+        square_frame(0.0, 0.0, 200.0),
+        round_clip_nearby_host_attrs(),
+        square_frame(50.0, 50.0, 100.0),
+        red_glow_attrs(),
+        square_frame(80.0, 80.0, 40.0),
+    );
+
+    let (_output, pixels) = render_tree_to_pixels(200, 200, &tree);
+
+    assert_glow_clipped_to_round_host(&pixels);
+}
+
+#[test]
+fn test_outer_shadow_of_nearby_is_clipped_by_clip_nearby_rounded_host() {
+    let mut tree = build_tree_with_child_frame(
+        Attrs::default(),
+        square_frame(0.0, 0.0, 200.0),
+        round_clip_nearby_host_attrs(),
+        square_frame(50.0, 50.0, 100.0),
+    );
+    let host_id = NodeId::from_term_bytes(vec![5]);
+    mount_nearby(
+        &mut tree,
+        &host_id,
+        NearbySlot::InFront,
+        ElementKind::El,
+        red_glow_attrs(),
+        square_frame(80.0, 80.0, 40.0),
+        64,
+    );
+
+    let (_output, pixels) = render_tree_to_pixels(200, 200, &tree);
+
+    assert_glow_clipped_to_round_host(&pixels);
+}
+
 #[test]
 fn test_outer_shadow_bleeds_into_parent_padding() {
     let parent_attrs = Attrs {
